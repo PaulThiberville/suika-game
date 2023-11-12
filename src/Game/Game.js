@@ -1,55 +1,86 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { KeyboardControls } from "./components/KeyboardControls";
-import { useControls } from "./store/controls";
+import React, { Suspense, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useCount } from "./store/count";
+import { CuboidCollider, Physics, RigidBody } from "@react-three/rapier";
 
 const Box = (props) => {
   const meshRef = useRef(null);
-  const [hovered, setHover] = useState(false);
-  const [active, setActive] = useState(false);
-  useFrame((state, delta) => (meshRef.current.rotation.x += 0.01));
   return (
-    <mesh
-      {...props}
-      ref={meshRef}
-      scale={active ? 1.5 : 1}
-      onClick={(event) => setActive(!active)}
-      onPointerOver={(event) => setHover(true)}
-      onPointerOut={(event) => setHover(false)}
-    >
+    <RigidBody colliders={"hull"} restitution={0.1}>
+      <mesh position={props.position} ref={meshRef}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="red" />
+      </mesh>
+    </RigidBody>
+  );
+};
+
+const Floor = (props) => {
+  const meshRef = useRef(null);
+  return (
+    <>
+      <mesh position={props.position} ref={meshRef}>
+        <boxGeometry args={props.args} />
+        <meshStandardMaterial color="blue" />
+      </mesh>
+      <CuboidCollider position={props.position} args={props.args} />
+    </>
+  );
+};
+
+const Spawner = ({ position, setPosition }) => {
+  const { viewport } = useThree();
+  const meshRef = useRef(null);
+
+  useFrame(({ mouse }) => {
+    const x = (mouse.x * viewport.width) / 2;
+    setPosition([x, 2, 0]);
+  });
+
+  return (
+    <mesh position={position} ref={meshRef}>
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={hovered ? "hotpink" : "orange"} />
+      <meshStandardMaterial color="green" />
     </mesh>
   );
 };
 
 const Game = () => {
-  const { controls } = useControls();
-  const [position, setPosition] = useState([0, 0, 0]);
+  const { count, increment } = useCount();
+  const [position, setPosition] = useState([0, 2, 0]);
+  const [cubes, setCubes] = useState([]);
 
-  useEffect(() => {
-    const { left, right, forward, back } = controls.state;
-    if (left)
-      setPosition((position) => [position[0] - 0.1, position[1], position[2]]);
-    if (right)
-      setPosition((position) => [position[0] + 0.1, position[1], position[2]]);
-    if (forward)
-      setPosition((position) => [position[0], position[1] + 0.1, position[2]]);
-    if (back)
-      setPosition((position) => [position[0], position[1] - 0.1, position[2]]);
-  }, [controls]);
+  const handleClick = () => {
+    increment();
+    setCubes([...cubes, { position }]);
+  };
 
   return (
     <>
-      <KeyboardControls />
-      <Canvas>
+      <Canvas onClick={handleClick}>
         <ambientLight />
         <pointLight position={[10, 10, 10]} />
-        <group position={position}>
-          <Box position={[-1.2, 0, 0]} />
-          <Box position={[1.2, 0, 0]} />
-        </group>
+        <Spawner position={position} setPosition={setPosition} />
+        <Suspense>
+          <Physics debug>
+            {cubes.map((cube, index) => {
+              return <Box key={index} {...cube} />;
+            })}
+            <Floor position={[0, -2, 0]} args={[20, 0.5, 20]} />
+          </Physics>
+        </Suspense>
       </Canvas>
+      <p
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          fontSize: 20,
+          padding: 10,
+        }}
+      >
+        {count}
+      </p>
     </>
   );
 };
