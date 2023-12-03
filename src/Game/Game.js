@@ -1,87 +1,36 @@
-import React, { Suspense, useRef, useState } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useCount } from "./store/count";
-import { CuboidCollider, Physics, RigidBody } from "@react-three/rapier";
+import React from "react";
+import Basket from "./Components/Basket";
+import styled from "styled-components";
+import Score from "./Components/UI/Score";
+import NextFruit from "./Components/UI/NextFruit";
 
-const Box = (props) => {
-  const meshRef = useRef(null);
-  return (
-    <RigidBody colliders={"hull"} restitution={0.1}>
-      <mesh position={props.position} ref={meshRef}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="red" />
-      </mesh>
-    </RigidBody>
+const StyledGame = styled.div`
+  width: 100%;
+  height: 100%;
+  background: rgb(189, 141, 84);
+  background: linear-gradient(
+    0deg,
+    rgba(235, 233, 177, 1) 0%,
+    rgba(235, 233, 177, 1) 40%,
+    rgba(199, 166, 91, 1) 40%,
+    rgba(199, 166, 91, 1) 50%,
+    rgba(168, 116, 43, 1) 50%,
+    rgba(168, 116, 43, 1) 60%,
+    rgba(189, 141, 84, 1) 60%,
+    rgba(189, 141, 84, 1) 100%
   );
-};
-
-const Floor = (props) => {
-  const meshRef = useRef(null);
-  return (
-    <>
-      <mesh position={props.position} ref={meshRef}>
-        <boxGeometry args={props.args} />
-        <meshStandardMaterial color="blue" />
-      </mesh>
-      <CuboidCollider position={props.position} args={props.args} />
-    </>
-  );
-};
-
-const Spawner = ({ position, setPosition }) => {
-  const { viewport } = useThree();
-  const meshRef = useRef(null);
-
-  useFrame(({ mouse }) => {
-    const x = (mouse.x * viewport.width) / 2;
-    setPosition([x, 2, 0]);
-  });
-
-  return (
-    <mesh position={position} ref={meshRef}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="green" />
-    </mesh>
-  );
-};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
 
 const Game = () => {
-  const { count, increment } = useCount();
-  const [position, setPosition] = useState([0, 2, 0]);
-  const [cubes, setCubes] = useState([]);
-
-  const handleClick = () => {
-    increment();
-    setCubes([...cubes, { position }]);
-  };
-
   return (
-    <>
-      <Canvas onClick={handleClick}>
-        <ambientLight />
-        <pointLight position={[10, 10, 10]} />
-        <Spawner position={position} setPosition={setPosition} />
-        <Suspense>
-          <Physics debug>
-            {cubes.map((cube, index) => {
-              return <Box key={index} {...cube} />;
-            })}
-            <Floor position={[0, -2, 0]} args={[20, 0.5, 20]} />
-          </Physics>
-        </Suspense>
-      </Canvas>
-      <p
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          fontSize: 20,
-          padding: 10,
-        }}
-      >
-        {count}
-      </p>
-    </>
+    <StyledGame>
+      <Score />
+      <Basket />
+      <NextFruit />
+    </StyledGame>
   );
 };
 
